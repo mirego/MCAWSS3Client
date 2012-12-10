@@ -33,4 +33,4 @@ MCAWSS3Client* client = [[MCAWSS3Client alloc] init];
 
 ## License
 
-AFNetworkingExtras is © 2012 [Mirego, Inc.](http://www.mirego.com) and may be freely distributed under the [New BSD license](http://github.com/mirego/afnetworkingextras/blob/master/LICENSE). See the `LICENSE` file.
+MCAWSS3Client is © 2012 [Mirego, Inc.](http://www.mirego.com) and may be freely distributed under the [New BSD license](http://opensource.org/licenses/BSD-3-Clause). See the `LICENSE` file.
