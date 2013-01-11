@@ -59,10 +59,20 @@
 
 - (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
-    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate success:success failure:failure];
+    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:NULL success:success failure:failure];
+}
+
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
+{
+    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:progress success:success failure:failure];
 }
 
 - (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
+{
+    [self putObjectWithData:data key:key mimeType:mimeType permission:permission progress:NULL success:success failure:failure];
+}
+
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
     [self clearAuthorizationHeader];
     
@@ -114,6 +124,8 @@
     } failure:^(AFHTTPRequestOperation* operation, NSError* error) {
         if (failure) failure(operation, error);
     }];
+    if (progress)
+        [operation setUploadProgressBlock:progress];
     
     [self enqueueHTTPRequestOperation:operation];
 }
