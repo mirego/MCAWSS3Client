@@ -116,7 +116,7 @@
     [self setDefaultHeader:@"Authorization" value:authorizationString];
     
     NSMutableURLRequest* request = [self requestWithMethod:@"PUT" path:canonicalizedResource parameters:nil];
-    [request addValue:[NSString stringWithFormat:@"%d", [data length]] forHTTPHeaderField:@"Content-Length"];
+    [request addValue:[NSString stringWithFormat:@"%ld", (long)[data length]] forHTTPHeaderField:@"Content-Length"];
     [request setHTTPBody:data];
     
     AFHTTPRequestOperation* operation = [self HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation* operation, id responseObject) {
