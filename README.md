@@ -1,5 +1,4 @@
-# MCAWSS3Client
-
+# MCAWSS3Client - Amazon S3 client based on AFHTTPClient.
 
 [Amazon S3](http://aws.amazon.com/s3/) client based on [AFNetworking](https://github.com/AFNetworking/AFNetworking)'s [AFHTTPClient](http://afnetworking.github.com/AFNetworking/Classes/AFHTTPClient.html).
 
@@ -30,7 +29,32 @@ MCAWSS3Client* client = [[MCAWSS3Client alloc] init];
 - This code also uses the **literals syntax**, so at least Xcode 4.5 is required.
 
 
+## Adding to your project
+
+If you're using [`CocoaPods`](http://cocoapods.org/), there's nothing simpler.
+Add the following to your [`Podfile`](http://docs.cocoapods.org/podfile.html)
+and run `pod install`
+
+```
+pod 'MCAWSS3Client', :git => 'https://github.com/mirego/MCAWSS3Client.git'
+```
+
+Don't forget to `#import "MCAWSS3Client.h"` where it's needed.
 
 ## License
 
-MCAWSS3Client is © 2012 [Mirego, Inc.](http://www.mirego.com) and may be freely distributed under the [New BSD license](http://opensource.org/licenses/BSD-3-Clause). See the `LICENSE` file.
+MCAWSS3Client is © 2013 [Mirego](http://www.mirego.com) and may be freely
+distributed under the [New BSD license](http://opensource.org/licenses/BSD-3-Clause).
+See the [`LICENSE.md`](https://github.com/mirego/MCUIColorUtils/blob/master/LICENSE.md) file.
+
+## About Mirego
+
+Mirego is a team of passionate people who believe that work is a place where you can innovate and have fun.
+We proudly built mobile applications for
+[iPhone](http://mirego.com/en/iphone-app-development/ "iPhone application development"),
+[iPad](http://mirego.com/en/ipad-app-development/ "iPad application development"),
+[Android](http://mirego.com/en/android-app-development/ "Android application development"),
+[Blackberry](http://mirego.com/en/blackberry-app-development/ "Blackberry application development"),
+[Windows Phone](http://mirego.com/en/windows-phone-app-development/ "Windows Phone application development") and
+[Windows 8](http://mirego.com/en/windows-8-app-development/ "Windows 8 application development").
+Learn more about our team at [life.mirego.com](http://life.mirego.com "Join our mobile design and development team").
