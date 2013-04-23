@@ -45,7 +45,7 @@ Don't forget to `#import "MCAWSS3Client.h"` where it's needed.
 
 MCAWSS3Client is © 2013 [Mirego](http://www.mirego.com) and may be freely
 distributed under the [New BSD license](http://opensource.org/licenses/BSD-3-Clause).
-See the [`LICENSE.md`](https://github.com/mirego/MCUIColorUtils/blob/master/LICENSE.md) file.
+See the [`LICENSE.md`](https://github.com/mirego/MCAWSS3Client/blob/master/LICENSE.md) file.
 
 ## About Mirego
 
