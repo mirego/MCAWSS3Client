@@ -40,6 +40,7 @@ typedef enum {
 
 @property (nonatomic, retain) NSString* accessKey;
 @property (nonatomic, retain) NSString* secretKey;
+@property (nonatomic, retain) NSString* sessionToken;
 @property (nonatomic, retain) NSString* bucket;
 @property (nonatomic, assign) BOOL integrityCheck;
 

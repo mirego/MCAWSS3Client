@@ -8,6 +8,7 @@
 MCAWSS3Client* client = [[MCAWSS3Client alloc] init];
 [client setAccessKey:@"..."];
 [client setSecretKey:@"..."];
+[client setSessionToken:@"..."]; // optional session token (necessary when using AWS STS credentials)
 [client setBucket:@"the-bucket"];
 
 [client putObjectWithData:imageData

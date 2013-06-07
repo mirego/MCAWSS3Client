@@ -82,6 +82,8 @@
         [self setDefaultHeader:@"Content-MD5" value:contentMD5];
     }
 
+    NSMutableArray* xAmzHeaders = [[NSMutableArray alloc] init];
+
     switch (permission) {
         case MCAWSS3ObjectPermissionsPrivate:
             [self setDefaultHeader:@"x-amz-acl" value:@"private"];
@@ -102,8 +104,23 @@
             [self setDefaultHeader:@"x-amz-acl" value:@"bucket-owner-full-control"];
             break;
     }
-    //** This is somewhat of a cheat, because we have a single `x-amz` header at the moment
-    NSString* canonicalizedAmzHeaders = [NSString stringWithFormat:@"x-amz-acl:%@\n", [self defaultValueForHeader:@"x-amz-acl"]];
+    [xAmzHeaders addObject:@"x-amz-acl"];
+
+    if (_sessionToken) {
+        [self setDefaultHeader:@"x-amz-security-token" value:_sessionToken];
+        [xAmzHeaders addObject:@"x-amz-security-token"];
+    }
+
+    [xAmzHeaders sortUsingSelector:@selector(compare:)];
+    NSString* canonicalizedAmzHeaders = @"";
+    for (NSString* xAmzHeader in xAmzHeaders) {
+        NSString* headerValue = [self defaultValueForHeader:xAmzHeader];
+        canonicalizedAmzHeaders = [canonicalizedAmzHeaders 
+                                   stringByAppendingFormat:@"%@:%@\n", 
+                                   xAmzHeader, 
+                                   headerValue];
+    }
+
     NSString* requestMethod = @"PUT";
     NSString* canonicalizedResource = [self canonicalizedResourceWithKey:key];
     NSString* stringToSign = [self stringToSignForRequestMethod:requestMethod contentMD5:contentMD5 mimeType:mimeType dateString:dateString headers:canonicalizedAmzHeaders resource:canonicalizedResource];
