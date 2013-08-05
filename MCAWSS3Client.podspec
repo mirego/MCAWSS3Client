@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name     = 'MCAWSS3Client'
-  s.version  = '0.5.1'
+  s.version  = '0.6.0'
   s.license  = 'BSD 3-Clause'
   s.summary  = 'Amazon S3 client based on AFHTTPClient.'
   s.homepage = 'https://github.com/mirego/MCAWSS3Client'
