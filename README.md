@@ -1,4 +1,6 @@
 # MCAWSS3Client - Amazon S3 client based on AFHTTPClient.
+[![Badge w/ Version](https://cocoapod-badges.herokuapp.com/v/MCAWSS3Client/badge.png)](https://cocoadocs.org/docsets/MCAWSS3Client)
+[![Badge w/ Platform](https://cocoapod-badges.herokuapp.com/p/MCAWSS3Client/badge.png)](https://cocoadocs.org/docsets/MCAWSS3Client)
 
 [Amazon S3](http://aws.amazon.com/s3/) client based on [AFNetworking](https://github.com/AFNetworking/AFNetworking)'s [AFHTTPClient](http://afnetworking.github.com/AFNetworking/Classes/AFHTTPClient.html).
 
