@@ -109,11 +109,12 @@
             [self setDefaultHeader:@"x-amz-acl" value:@"bucket-owner-full-control"];
             break;
     }
+    NSMutableDictionary *metadataHeaders = [NSMutableDictionary dictionary];
     if (metadata) {
         for (NSString *key in [metadata allKeys]) {
             NSString *headerName = [NSString stringWithFormat:@"x-amz-meta-%@", key];
-            [self setDefaultHeader:headerName value:metadata[key]];
             [xAmzHeaders addObject:headerName];
+            metadataHeaders[headerName] = metadata[key];
         }
     }
     [xAmzHeaders addObject:@"x-amz-acl"];
@@ -126,12 +127,15 @@
     NSString* canonicalizedAmzHeaders = @"";
     for (NSString* xAmzHeader in xAmzHeaders) {
         NSString* headerValue = [self defaultValueForHeader:xAmzHeader];
+        if (!headerValue && metadataHeaders && [metadataHeaders objectForKey:xAmzHeader]) {
+            headerValue = [metadataHeaders objectForKey:xAmzHeader];
+        }
         canonicalizedAmzHeaders = [canonicalizedAmzHeaders 
                                    stringByAppendingFormat:@"%@:%@\n", 
                                    xAmzHeader, 
                                    headerValue];
     }
-
+    
     NSString* requestMethod = @"PUT";
     NSString* canonicalizedResource = [self canonicalizedResourceWithKey:key];
     NSString* stringToSign = [self stringToSignForRequestMethod:requestMethod contentMD5:contentMD5 mimeType:mimeType dateString:dateString headers:canonicalizedAmzHeaders resource:canonicalizedResource];
@@ -143,6 +147,13 @@
     NSMutableURLRequest* request = [self requestWithMethod:@"PUT" path:canonicalizedResource parameters:nil];
     [request addValue:[NSString stringWithFormat:@"%ld", (long)[data length]] forHTTPHeaderField:@"Content-Length"];
     [request setHTTPBody:data];
+
+    if (metadataHeaders) {
+        for (NSString *key in [metadataHeaders allKeys]) {
+            NSString *headerValue = metadataHeaders[key];
+            [request setValue:headerValue forHTTPHeaderField:key];
+        }
+    }
 
     AFHTTPRequestOperation* operation = [self HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation* operation, id responseObject) {
         if (success) success(operation, responseObject);
