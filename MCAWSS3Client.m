@@ -56,20 +56,25 @@
 
 - (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
-    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:NULL success:success failure:failure];
+    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate metadata:nil progress:NULL success:success failure:failure];
 }
 
 - (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
-    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:progress success:success failure:failure];
+    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate metadata:nil progress:progress success:success failure:failure];
+}
+
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType metadata:(NSDictionary *)metadata progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
+{
+    [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate metadata:metadata progress:progress success:success failure:failure];
 }
 
 - (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
-    [self putObjectWithData:data key:key mimeType:mimeType permission:permission progress:NULL success:success failure:failure];
+    [self putObjectWithData:data key:key mimeType:mimeType permission:permission metadata:nil progress:NULL success:success failure:failure];
 }
 
-- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission metadata:(NSDictionary *)metadata progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
     [self clearAuthorizationHeader];
 
@@ -104,8 +109,15 @@
             [self setDefaultHeader:@"x-amz-acl" value:@"bucket-owner-full-control"];
             break;
     }
+    NSMutableDictionary *metadataHeaders = [NSMutableDictionary dictionary];
+    if (metadata) {
+        for (NSString *key in [metadata allKeys]) {
+            NSString *headerName = [NSString stringWithFormat:@"x-amz-meta-%@", key];
+            [xAmzHeaders addObject:headerName];
+            metadataHeaders[headerName] = metadata[key];
+        }
+    }
     [xAmzHeaders addObject:@"x-amz-acl"];
-
     if (_sessionToken) {
         [self setDefaultHeader:@"x-amz-security-token" value:_sessionToken];
         [xAmzHeaders addObject:@"x-amz-security-token"];
@@ -115,12 +127,15 @@
     NSString* canonicalizedAmzHeaders = @"";
     for (NSString* xAmzHeader in xAmzHeaders) {
         NSString* headerValue = [self defaultValueForHeader:xAmzHeader];
+        if (!headerValue && metadataHeaders && [metadataHeaders objectForKey:xAmzHeader]) {
+            headerValue = [metadataHeaders objectForKey:xAmzHeader];
+        }
         canonicalizedAmzHeaders = [canonicalizedAmzHeaders 
                                    stringByAppendingFormat:@"%@:%@\n", 
                                    xAmzHeader, 
                                    headerValue];
     }
-
+    
     NSString* requestMethod = @"PUT";
     NSString* canonicalizedResource = [self canonicalizedResourceWithKey:key];
     NSString* stringToSign = [self stringToSignForRequestMethod:requestMethod contentMD5:contentMD5 mimeType:mimeType dateString:dateString headers:canonicalizedAmzHeaders resource:canonicalizedResource];
@@ -132,6 +147,13 @@
     NSMutableURLRequest* request = [self requestWithMethod:@"PUT" path:canonicalizedResource parameters:nil];
     [request addValue:[NSString stringWithFormat:@"%ld", (long)[data length]] forHTTPHeaderField:@"Content-Length"];
     [request setHTTPBody:data];
+
+    if (metadataHeaders) {
+        for (NSString *key in [metadataHeaders allKeys]) {
+            NSString *headerValue = metadataHeaders[key];
+            [request setValue:headerValue forHTTPHeaderField:key];
+        }
+    }
 
     AFHTTPRequestOperation* operation = [self HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation* operation, id responseObject) {
         if (success) success(operation, responseObject);
