@@ -59,7 +59,7 @@
     [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:NULL success:success failure:failure];
 }
 
-- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType progress:(void (^)(NSUInteger bytesWritten, NSInteger totalBytesWritten, NSInteger totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
     [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:progress success:success failure:failure];
 }
