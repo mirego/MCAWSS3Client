@@ -27,9 +27,9 @@
 
 #import "MCAWSS3Client.h"
 #import <CommonCrypto/CommonHMAC.h>
+#import "AFHTTPRequestOperation.h"
 
 @interface MCAWSS3Client ()
-@property (nonatomic) AFHTTPRequestOperationManager *requestOperationManager;
 - (NSString*)canonicalizedResourceWithKey:(NSString*)key;
 - (NSString*)stringToSignForRequestMethod:(NSString*)requestMethod contentMD5:(NSString*)contentMD5 mimeType:(NSString*)mimeType dateString:(NSString*)dateString headers:(NSString*)canonicalizedAmzHeaders resource:(NSString*)canonicalizedResource;
 - (NSString*)dateString;
@@ -45,113 +45,118 @@
     return [self initWithBaseURL:[NSURL URLWithString:@"http://s3.amazonaws.com"]];
 }
 
-- (instancetype)initWithBaseURL:(NSURL*)url
-{
-    if (self = [super init]) {
-        _requestOperationManager = [[AFHTTPRequestOperationManager alloc] initWithBaseURL:url];
+- (instancetype)initWithBaseURL:(NSURL*)url {
+    self = [super initWithBaseURL:url];
+    if (self) {
         _integrityCheck = YES;   //default
     }
     return self;
 }
 
-- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
-{
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
     [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:NULL success:success failure:failure];
 }
 
-- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
-{
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
     [self putObjectWithData:data key:key mimeType:mimeType permission:MCAWSS3ObjectPermissionsPrivate progress:progress success:success failure:failure];
 }
 
-- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
-{
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
     [self putObjectWithData:data key:key mimeType:mimeType permission:permission progress:NULL success:success failure:failure];
 }
 
-- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
-{
-    NSMutableDictionary *headers = [[NSMutableDictionary alloc] init];
+- (void)putObjectWithData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
+    [self performMethod:@"PUT" withData:data key:key mimeType:mimeType permission:permission progress:progress success:success failure:failure];
+}
+
+- (void)deleteObjectWithKey:(NSString*)key success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
+    [self deleteObjectWithKey:key mimeType:@"" permission:MCAWSS3ObjectPermissionsPrivate progress:NULL success:success failure:failure];
+}
+
+- (void)deleteObjectWithKey:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
+    [self performMethod:@"DELETE" withData:[NSData data] key:key mimeType:mimeType permission:permission progress:progress success:success failure:failure];
+}
+
+- (void)performMethod:(NSString *)requestMethod withData:(NSData*)data key:(NSString*)key mimeType:(NSString*)mimeType permission:(MCAWSS3ObjectPermission)permission progress:(void (^)(NSUInteger bytesWritten, long long totalBytesWritten, long long totalBytesExpectedToWrite))progress success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure {
+    [self.requestSerializer clearAuthorizationHeader];
+
     NSString* dateString = [self dateString];
-    [headers setObject:dateString forKey:@"Date"];
+    [self.requestSerializer setValue:dateString forHTTPHeaderField:@"Date"];
 
     NSString* contentMD5 = @"";
     if (self.integrityCheck) {
         contentMD5 = [self base64EncodedStringFromData:[self MD5FromData:data]];
-        [headers setObject:contentMD5 forKey:@"Content-MD5"];
+        [self.requestSerializer setValue:contentMD5 forHTTPHeaderField:@"Content-MD5"];
     }
 
     NSMutableArray* xAmzHeaders = [[NSMutableArray alloc] init];
+    NSString *aclHeaderField = @"x-amz-acl";
 
     switch (permission) {
         case MCAWSS3ObjectPermissionsPrivate:
-            [headers setObject:@"private" forKey:@"x-amz-acl"];
+            [self.requestSerializer setValue:@"private" forHTTPHeaderField:aclHeaderField];
             break;
         case MCAWSS3ObjectPermissionPublicRead:
-            [headers setObject:@"public-read" forKey:@"x-amz-acl"];
+            [self.requestSerializer setValue:@"public-read" forHTTPHeaderField:aclHeaderField];
             break;
         case MCAWSS3ObjectPermissionPublicReadWrite:
-            [headers setObject:@"public-read-write" forKey:@"x-amz-acl"];
+            [self.requestSerializer setValue:@"public-read-write" forHTTPHeaderField:aclHeaderField];
             break;
         case MCAWSS3ObjectPermissionAuthenticatedRead:
-            [headers setObject:@"authenticated-read" forKey:@"x-amz-acl"];
+            [self.requestSerializer setValue:@"authenticated-read" forHTTPHeaderField:aclHeaderField];
             break;
         case MCAWSS3ObjectPermissionBucketOwnerRead:
-            [headers setObject:@"bucket-owner-read" forKey:@"x-amz-acl"];
+            [self.requestSerializer setValue:@"bucket-owner-read" forHTTPHeaderField:aclHeaderField];
             break;
         case MCAWSS3ObjectPermissionBucketOwnerFullControl:
-            [headers setObject:@"bucket-owner-full-control" forKey:@"x-amz-acl"];
+            [self.requestSerializer setValue:@"bucket-owner-full-control" forHTTPHeaderField:aclHeaderField];
             break;
     }
     [xAmzHeaders addObject:@"x-amz-acl"];
 
-    if (self.sessionToken) {
-        [headers setObject:self.sessionToken forKey:@"x-amz-security-token"];
+    if (_sessionToken) {
+        [self.requestSerializer setValue:_sessionToken forHTTPHeaderField:@"x-amz-security-token"];
         [xAmzHeaders addObject:@"x-amz-security-token"];
     }
 
     [xAmzHeaders sortUsingSelector:@selector(compare:)];
     NSString* canonicalizedAmzHeaders = @"";
     for (NSString* xAmzHeader in xAmzHeaders) {
-        NSString* headerValue = [headers objectForKey:xAmzHeader];
+        [self.requestSerializer setValue:@"private" forHTTPHeaderField:aclHeaderField];
+        NSString* headerValue = [[self.requestSerializer HTTPRequestHeaders] objectForKey:xAmzHeader];
         canonicalizedAmzHeaders = [canonicalizedAmzHeaders
-                                   stringByAppendingFormat:@"%@:%@\n", 
-                                   xAmzHeader, 
+                                   stringByAppendingFormat:@"%@:%@\n",
+                                   xAmzHeader,
                                    headerValue];
     }
-
-    NSString* requestMethod = @"PUT";
+    
     NSString* canonicalizedResource = [self canonicalizedResourceWithKey:key];
     NSString* stringToSign = [self stringToSignForRequestMethod:requestMethod contentMD5:contentMD5 mimeType:mimeType dateString:dateString headers:canonicalizedAmzHeaders resource:canonicalizedResource];
 
     NSString* signature = [self base64EncodedStringFromData:[self HMACSHA1WithKey:self.secretKey string:stringToSign]];
     NSString* authorizationString = [NSString stringWithFormat:@"AWS %@:%@", self.accessKey, signature];
-    [headers setObject:authorizationString forKey:@"Authorization"];
+    [self.requestSerializer setValue:authorizationString forHTTPHeaderField:@"Authorization"];
     
-    [headers setObject:mimeType forKey:@"Content-Type"];
-    
-    NSMutableURLRequest *request = [[self.requestOperationManager requestSerializer] requestWithMethod:@"PUT" URLString:[[NSURL URLWithString:canonicalizedResource relativeToURL:_requestOperationManager.baseURL] absoluteString] parameters:nil error:nil];
-    [request setAllHTTPHeaderFields:headers];
+    NSMutableURLRequest* request = [self.requestSerializer requestWithMethod:requestMethod URLString:[[NSURL URLWithString:canonicalizedResource relativeToURL:self.baseURL] absoluteString] parameters:nil error:nil];
     [request addValue:[NSString stringWithFormat:@"%ld", (long)[data length]] forHTTPHeaderField:@"Content-Length"];
     [request setHTTPBody:data];
-    AFHTTPRequestOperation *requestOperation = [self.requestOperationManager HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    AFHTTPRequestOperation* operation = [self HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation* operation, id responseObject) {
         if (success) success(operation, responseObject);
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+    } failure:^(AFHTTPRequestOperation* operation, NSError* error) {
         if (failure) failure(operation, error);
     }];
-    if (progress) {
-        [requestOperation setUploadProgressBlock:progress];
-    }
-
-    [self.requestOperationManager.operationQueue addOperation:requestOperation];
+    if (progress)
+        [operation setUploadProgressBlock:progress];
+    
+    [self.operationQueue addOperation:operation];
 }
 
 - (void)getObjectToFileAtPath:(NSString*)path key:(NSString*)key success:(void (^)(AFHTTPRequestOperation* operation, id responseObject))success failure:(void (^)(AFHTTPRequestOperation* operation, NSError* error))failure
 {
-    NSMutableDictionary *headers = [[NSMutableDictionary alloc] init];
+    [self.requestSerializer clearAuthorizationHeader];
     
     NSString* dateString = [self dateString];
-    [headers setObject:dateString forKey:@"Date"];
+    [self.requestSerializer setValue:dateString forHTTPHeaderField:@"Date"];
 
     NSString* canonicalizedAmzHeaders = @"";
     NSString* requestMethod = @"GET";
@@ -160,19 +165,19 @@
 
     NSString* signature = [self base64EncodedStringFromData:[self HMACSHA1WithKey:self.secretKey string:stringToSign]];
     NSString* authorizationString = [NSString stringWithFormat:@"AWS %@:%@", self.accessKey, signature];
-    [headers setObject:authorizationString forKey:@"Authorization"];
+    [self.requestSerializer setValue:authorizationString forHTTPHeaderField:@"Authorization"];
 
-    NSMutableURLRequest *request = [[self.requestOperationManager requestSerializer] requestWithMethod:@"PUT" URLString:[[NSURL URLWithString:canonicalizedResource relativeToURL:_requestOperationManager.baseURL] absoluteString] parameters:nil error:nil];
-    [request setAllHTTPHeaderFields:headers];
+    NSMutableURLRequest* request = [self.requestSerializer requestWithMethod:requestMethod URLString:[[NSURL URLWithString:canonicalizedResource relativeToURL:self.baseURL] absoluteString] parameters:nil error:nil];
     
-    AFHTTPRequestOperation *requestOperation = [self.requestOperationManager HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation *operation, id responseObject) {
+    AFHTTPRequestOperation* operation = [self HTTPRequestOperationWithRequest:request success:^(AFHTTPRequestOperation* operation, id responseObject) {
         if (success) success(operation, responseObject);
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+    } failure:^(AFHTTPRequestOperation* operation, NSError* error) {
         if (failure) failure(operation, error);
     }];
     
-    [requestOperation setOutputStream:[NSOutputStream outputStreamToFileAtPath:path append:NO]];
-    [self.requestOperationManager.operationQueue addOperation:requestOperation];
+    [operation setOutputStream:[NSOutputStream outputStreamToFileAtPath:path append:NO]];
+    
+	[self.operationQueue addOperation:operation];
 }
 
 
@@ -187,6 +192,9 @@
 
 - (NSString*)stringToSignForRequestMethod:(NSString*)requestMethod contentMD5:(NSString*)contentMD5 mimeType:(NSString*)mimeType dateString:(NSString*)dateString headers:(NSString*)canonicalizedAmzHeaders resource:(NSString*)canonicalizedResource
 {
+    if ([requestMethod isEqualToString:@"PUT"]) {
+        [self.requestSerializer setValue:mimeType forHTTPHeaderField:@"Content-Type"];
+    }
     return [NSString stringWithFormat:@"%@\n%@\n%@\n%@\n%@%@", requestMethod, contentMD5, mimeType, dateString, canonicalizedAmzHeaders, canonicalizedResource];
 }
 
@@ -239,7 +247,7 @@
 {
     uint8_t digest[CC_MD5_DIGEST_LENGTH] = {0};
 
-    CC_MD5([data bytes], [data length], digest);
+    CC_MD5([data bytes], (int)[data length], digest);
 
     return [NSData dataWithBytes:digest length:CC_MD5_DIGEST_LENGTH];
 }
